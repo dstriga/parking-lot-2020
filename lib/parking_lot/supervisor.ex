@@ -9,6 +9,7 @@ defmodule ParkingLot.Supervisor do
 
   def init(:ok) do
     children = [
+      Database.Repo,
       Plug.Cowboy.child_spec(
         scheme: :http,
         plug: ParkingLot.Router,
