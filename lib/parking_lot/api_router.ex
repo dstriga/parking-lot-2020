@@ -8,13 +8,28 @@ defmodule ParkingLot.ApiRouter do
   plug(:dispatch)
 
   alias ParkingLot.Operations
+  alias Validations.BarcodeValidation
   #################
   ### API paths ###
   #################
 
+  ### Task 1 - Create new parking ticket
   post "/tickets" do
     Operations.create_parking_ticket()
     |> process_response(conn)
+  end
+
+  ### Task 2 - Calculate parking ticket price
+  get "/tickets/:barcode" do
+    case BarcodeValidation.validate(conn.params) do
+      {:ok, data} ->
+        data
+        |> Operations.calculate_parking_ticket_price()
+        |> process_response(conn)
+
+      error ->
+        error |> process_response(conn)
+    end
   end
 
   get "/alive" do
@@ -46,6 +61,8 @@ defmodule ParkingLot.ApiRouter do
   end
 
   ### Error codes ###
+  defp error_codes(:unknown_barcode), do: {400, "Unknown barcode"}
+  defp error_codes(:invalid_barcode), do: {400, "Invalid barcode format"}
   defp error_codes(:no_free_parking_spaces), do: {400, "No free parking spaces"}
   defp error_codes(:not_found), do: {404, "Not found!"}
   defp error_codes(:db_error), do: {500, "DB error"}

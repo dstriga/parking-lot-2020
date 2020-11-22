@@ -2,12 +2,14 @@ defmodule ParkingLot.ParkingTicket do
   @moduledoc false
   require Logger
   alias Database.Repo
-  alias Database.InitDatabase
-  alias Database.{ParkingTicket, ParkingLotStatus}
+  alias ParkingLot.ParkingLotStatusModel
+  alias Database.ParkingTicket
   alias ParkingLot.BarcodeGenerator
   require Enums.ParkingTicketStatus
   alias Enums.ParkingTicketStatus
+  alias ParkingLot.ParkingTicketPrice
 
+  ### Create new ticket
   def create() do
     utc_time = DateTime.utc_now() |> DateTime.truncate(:second)
 
@@ -18,12 +20,31 @@ defmodule ParkingLot.ParkingTicket do
     }
 
     utc_time
-    |> get_parking_lot_status()
+    |> ParkingLotStatusModel.get()
     |> execute_transaction(parking_ticket)
     |> process_transaction_response()
   end
 
-  ### Execute DB transaction
+  ### Calculate ticket price
+  def calculate_price(barcode) do
+    barcode
+    |> get_parking_ticket()
+    |> ParkingTicketPrice.calculate()
+  end
+
+  #######################
+  ### Private methods ###
+  #######################
+
+  ### [DB] Get parking ticket by barcode
+  defp get_parking_ticket(barcode) do
+    case Repo.get_by(ParkingTicket, barcode: barcode) do
+      nil -> {:error, :unknown_barcode}
+      data -> {:ok, data}
+    end
+  end
+
+  ### [DB] Execute transaction
   defp execute_transaction({:ok, parking_lot_status}, parking_ticket) do
     try do
       Repo.transaction(fn ->
@@ -45,29 +66,4 @@ defmodule ParkingLot.ParkingTicket do
   end
 
   defp process_transaction_response(error), do: error
-
-  ### Get parking lot status model
-  defp get_parking_lot_status(utc_time) do
-    case InitDatabase.init_parking_lot_status() do
-      %{activ_parking_tickets: activ_parking_tickets} = parking_lot_status ->
-        parking_lot_status
-        |> ParkingLotStatus.changeset(%{
-          activ_parking_tickets: activ_parking_tickets + 1,
-          inserted_at: utc_time,
-          updated_at: utc_time
-        })
-        |> process_parking_lot_status()
-
-      _ ->
-        {:error, :db_error}
-    end
-  end
-
-  ### Process parking lot status changeset
-  defp process_parking_lot_status(changeset) do
-    case changeset.valid?() do
-      true -> {:ok, changeset}
-      false -> {:error, :no_free_parking_spaces}
-    end
-  end
 end
