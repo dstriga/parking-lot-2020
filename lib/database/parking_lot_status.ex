@@ -18,4 +18,14 @@ defmodule Database.ParkingLotStatus do
       less_than_or_equal_to: ParkingLot.parking_spaces()
     )
   end
+
+  def update_changeset(data_model, params \\ %{}) do
+    data_model
+    |> cast(params, [:activ_parking_tickets, :updated_at])
+    |> validate_required([:activ_parking_tickets])
+    |> validate_number(:activ_parking_tickets,
+      greater_than_or_equal_to: @min_value,
+      less_than_or_equal_to: ParkingLot.parking_spaces()
+    )
+  end
 end

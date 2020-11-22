@@ -1,11 +1,9 @@
 defmodule ParkingLot.ParkingTicketPrice do
   @moduledoc false
   require Logger
-  alias Database.Repo
-  import Ecto.Query
-  alias Database.TicketPayments
   require Enums.ParkingTicketStatus
   alias Enums.ParkingTicketStatus
+  alias ParkingLot.TicketPayment
 
   ### Process DB responde and calculate ticket price
   def calculate(
@@ -30,16 +28,8 @@ defmodule ParkingLot.ParkingTicketPrice do
 
   ### [Latest ticket time] Get
   defp get_latest_ticket_time(parking_ticket_id, start_time) do
-    query =
-      from(x in TicketPayments,
-        select: [:payment_time, :payment_value],
-        where: [parking_ticket_id: ^parking_ticket_id],
-        order_by: [desc: x.payment_time],
-        limit: 1
-      )
-
-    query
-    |> Repo.all()
+    parking_ticket_id
+    |> TicketPayment.get_latest_ticket_payment()
     |> process_latest_ticket_time(start_time)
   end
 

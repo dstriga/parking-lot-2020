@@ -15,6 +15,7 @@ config :parking_lot,
   parking_price_value: 2.00,
   parking_price_currency: "€",
   parking_price_duration_min: 60,
-  parking_price_decimal_places: 2
+  parking_price_decimal_places: 2,
+  parking_free_min_time: 15
 
 import_config "#{Mix.env()}.exs"

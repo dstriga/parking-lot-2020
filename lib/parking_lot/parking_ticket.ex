@@ -21,7 +21,7 @@ defmodule ParkingLot.ParkingTicket do
     }
 
     utc_time
-    |> ParkingLotStatusModel.get()
+    |> ParkingLotStatusModel.increment()
     |> UtilityDB.execute_transaction(parking_ticket)
     |> process_transaction_response()
   end

@@ -4,14 +4,29 @@ defmodule ParkingLot.ParkingLotStatusModel do
   alias Database.InitDatabase
   alias Database.ParkingLotStatus
 
-  ### Get parking lot status model
-  def get(utc_time) do
+  ### Increment parking lot status model
+  def increment(utc_time) do
     case InitDatabase.init_parking_lot_status() do
       %{activ_parking_tickets: activ_parking_tickets} = parking_lot_status ->
         parking_lot_status
-        |> ParkingLotStatus.changeset(%{
+        |> ParkingLotStatus.update_changeset(%{
           activ_parking_tickets: activ_parking_tickets + 1,
-          inserted_at: utc_time,
+          updated_at: utc_time
+        })
+        |> is_valid()
+
+      _ ->
+        {:error, :db_error}
+    end
+  end
+
+  ### Decrement parking lot status model
+  def decrement(utc_time) do
+    case InitDatabase.init_parking_lot_status() do
+      %{activ_parking_tickets: activ_parking_tickets} = parking_lot_status ->
+        parking_lot_status
+        |> ParkingLotStatus.update_changeset(%{
+          activ_parking_tickets: activ_parking_tickets - 1,
           updated_at: utc_time
         })
         |> is_valid()

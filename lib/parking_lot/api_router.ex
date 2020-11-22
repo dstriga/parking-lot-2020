@@ -7,10 +7,12 @@ defmodule ParkingLot.ApiRouter do
   plug(Plug.Parsers, parsers: [:json], json_decoder: Jason)
   plug(:dispatch)
 
-  alias Validations.BarcodeValidation
-  alias Validations.PaymentValidation
+  alias Validations.{BarcodeValidation, PaymentValidation}
+
   alias ParkingLot.ParkingTicket
   alias ParkingLot.TicketPayment
+  alias ParkingLot.TicketState
+
   #################
   ### API paths ###
   #################
@@ -48,10 +50,25 @@ defmodule ParkingLot.ApiRouter do
     end
   end
 
+  ### Task 4 - Parking ticket state
+  get "/tickets/:barcode/state" do
+    case BarcodeValidation.validate(conn.params) do
+      {:ok, data} ->
+        data
+        |> TicketState.get()
+        |> process_response(conn)
+
+      error ->
+        error |> process_response(conn)
+    end
+  end
+
+  ### Check app alive
   get "/alive" do
     send(conn, 200, 1)
   end
 
+  ### Path not fount
   match _ do
     send(conn, 404, "Not found!")
   end

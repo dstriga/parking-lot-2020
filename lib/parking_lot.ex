@@ -24,4 +24,7 @@ defmodule ParkingLot do
 
   def parking_price_decimal_places,
     do: Application.fetch_env!(:parking_lot, :parking_price_decimal_places)
+
+  def parking_free_min_time,
+    do: Application.fetch_env!(:parking_lot, :parking_free_min_time)
 end

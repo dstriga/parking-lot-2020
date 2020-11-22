@@ -34,4 +34,15 @@ defmodule Database.ParkingTicket do
       ParkingTicketStatus.paid()
     ])
   end
+
+  def update_time_status_changeset(data_model, params \\ %{}) do
+    data_model
+    |> cast(params, [:ticket_status, :end_time])
+    |> validate_required([:ticket_status, :end_time])
+    |> validate_inclusion(:ticket_status, [
+      ParkingTicketStatus.unpaid(),
+      ParkingTicketStatus.returned(),
+      ParkingTicketStatus.paid()
+    ])
+  end
 end

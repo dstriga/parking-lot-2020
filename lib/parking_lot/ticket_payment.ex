@@ -1,15 +1,17 @@
 defmodule ParkingLot.TicketPayment do
   @moduledoc false
   require Logger
+  import Ecto.Query
+  alias Database.Repo
   alias Database.ParkingTicket
   alias Database.TicketPayments
-
   alias ParkingLot.ParkingTicket, as: ParkingTicketMethods
   alias ParkingLot.ParkingTicketPrice
   require Enums.ParkingTicketStatus
   alias Enums.ParkingTicketStatus
   alias ParkingLot.UtilityDB
 
+  ### Process ticket payment
   def process(barcode, payment_option) do
     case ParkingTicketMethods.get_parking_ticket(barcode) do
       {:ok, %{ticket_status: _} = parking_ticket} ->
@@ -20,6 +22,19 @@ defmodule ParkingLot.TicketPayment do
       error ->
         error
     end
+  end
+
+  ### [Get] latest ticket payment
+  def get_latest_ticket_payment(parking_ticket_id) do
+    query =
+      from(x in TicketPayments,
+        select: [:payment_time, :payment_value],
+        where: [parking_ticket_id: ^parking_ticket_id],
+        order_by: [desc: x.payment_time],
+        limit: 1
+      )
+
+    query |> Repo.all()
   end
 
   #######################
