@@ -1,9 +1,58 @@
 defmodule ParkingLot.ParkingTicketPrice do
   @moduledoc false
   require Logger
+  alias Database.Repo
+  import Ecto.Query
+  alias Database.TicketPayments
+  require Enums.ParkingTicketStatus
+  alias Enums.ParkingTicketStatus
 
   ### Process DB responde and calculate ticket price
-  def calculate({:ok, %{start_time: start_time} = _parking_ticket}) do
+  def calculate(
+        {:ok, %{id: id, start_time: start_time, ticket_status: ticket_status} = _parking_ticket}
+      ) do
+    id
+    |> get_latest_ticket_time(start_time)
+    |> process(ticket_status)
+  end
+
+  def calculate(%{id: id, start_time: start_time, ticket_status: ticket_status}) do
+    id
+    |> get_latest_ticket_time(start_time)
+    |> process(ticket_status)
+  end
+
+  def calculate({:error, _} = error), do: error
+
+  #######################
+  ### Private methods ###
+  #######################
+
+  ### [Latest ticket time] Get
+  defp get_latest_ticket_time(parking_ticket_id, start_time) do
+    query =
+      from(x in TicketPayments,
+        select: [:payment_time, :payment_value],
+        where: [parking_ticket_id: ^parking_ticket_id],
+        order_by: [desc: x.payment_time],
+        limit: 1
+      )
+
+    query
+    |> Repo.all()
+    |> process_latest_ticket_time(start_time)
+  end
+
+  ### [Latest ticket time] Process
+  defp process_latest_ticket_time([%{payment_time: payment_time} | _], start_time)
+       when payment_time > start_time,
+       do: payment_time
+
+  defp process_latest_ticket_time([], start_time), do: start_time
+  defp process_latest_ticket_time(_, _), do: {:error, :db_error}
+
+  ### [Ticket price] Process calculation
+  defp process(start_time, ticket_status) when ticket_status == ParkingTicketStatus.unpaid() do
     utc_time = DateTime.utc_now() |> DateTime.truncate(:second)
 
     diff_min_time =
@@ -24,5 +73,12 @@ defmodule ParkingLot.ParkingTicketPrice do
      }}
   end
 
-  def calculate({:error, _} = error), do: error
+  defp process(_, _) do
+    {:ok,
+     %{
+       ticket_price_value: 0.0,
+       ticket_price_currency: ParkingLot.parking_price_currency(),
+       ticket_price_time: DateTime.utc_now() |> DateTime.truncate(:second)
+     }}
+  end
 end

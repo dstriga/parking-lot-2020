@@ -8,6 +8,7 @@ defmodule ParkingLot.ParkingTicket do
   require Enums.ParkingTicketStatus
   alias Enums.ParkingTicketStatus
   alias ParkingLot.ParkingTicketPrice
+  alias ParkingLot.UtilityDB
 
   ### Create new ticket
   def create() do
@@ -16,12 +17,12 @@ defmodule ParkingLot.ParkingTicket do
     parking_ticket = %ParkingTicket{
       barcode: ParkingLot.barcode_length() |> BarcodeGenerator.generate(),
       start_time: utc_time,
-      ticket_status: ParkingTicketStatus.activ()
+      ticket_status: ParkingTicketStatus.unpaid()
     }
 
     utc_time
     |> ParkingLotStatusModel.get()
-    |> execute_transaction(parking_ticket)
+    |> UtilityDB.execute_transaction(parking_ticket)
     |> process_transaction_response()
   end
 
@@ -32,31 +33,18 @@ defmodule ParkingLot.ParkingTicket do
     |> ParkingTicketPrice.calculate()
   end
 
-  #######################
-  ### Private methods ###
-  #######################
-
+  #####  DB  #####
   ### [DB] Get parking ticket by barcode
-  defp get_parking_ticket(barcode) do
+  def get_parking_ticket(barcode) do
     case Repo.get_by(ParkingTicket, barcode: barcode) do
       nil -> {:error, :unknown_barcode}
       data -> {:ok, data}
     end
   end
 
-  ### [DB] Execute transaction
-  defp execute_transaction({:ok, parking_lot_status}, parking_ticket) do
-    try do
-      Repo.transaction(fn ->
-        Repo.update!(parking_lot_status)
-        Repo.insert!(parking_ticket)
-      end)
-    rescue
-      _ -> {:error, :db_error}
-    end
-  end
-
-  defp execute_transaction({:error, _} = error, _), do: error
+  #######################
+  ### Private methods ###
+  #######################
 
   ### Process transaction response
   defp process_transaction_response(

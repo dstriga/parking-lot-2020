@@ -9,6 +9,7 @@ defmodule Database.ParkingTicket do
     field(:start_time, :utc_datetime, default: nil)
     field(:end_time, :utc_datetime, default: nil)
     field(:ticket_status, :integer, default: 0)
+    has_many(:ticket_payments, Database.TicketPayments)
   end
 
   def changeset(data_model, params \\ %{}) do
@@ -16,9 +17,21 @@ defmodule Database.ParkingTicket do
     |> cast(params, [:barcode, :start_time, :end_time, :ticket_status])
     |> validate_required([:barcode, :start_time, :end_time, :ticket_status])
     |> validate_length(:barcode, is: ParkingLot.barcode_length())
-    |> validate_subset(:ticket_status, [
-      ParkingTicketStatus.activ(),
-      ParkingTicketStatus.returned()
+    |> validate_inclusion(:ticket_status, [
+      ParkingTicketStatus.unpaid(),
+      ParkingTicketStatus.returned(),
+      ParkingTicketStatus.paid()
+    ])
+  end
+
+  def update_status_changeset(data_model, params \\ %{}) do
+    data_model
+    |> cast(params, [:ticket_status])
+    |> validate_required([:ticket_status])
+    |> validate_inclusion(:ticket_status, [
+      ParkingTicketStatus.unpaid(),
+      ParkingTicketStatus.returned(),
+      ParkingTicketStatus.paid()
     ])
   end
 end

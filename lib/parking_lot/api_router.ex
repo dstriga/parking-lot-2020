@@ -7,15 +7,17 @@ defmodule ParkingLot.ApiRouter do
   plug(Plug.Parsers, parsers: [:json], json_decoder: Jason)
   plug(:dispatch)
 
-  alias ParkingLot.Operations
   alias Validations.BarcodeValidation
+  alias Validations.PaymentValidation
+  alias ParkingLot.ParkingTicket
+  alias ParkingLot.TicketPayment
   #################
   ### API paths ###
   #################
 
   ### Task 1 - Create new parking ticket
   post "/tickets" do
-    Operations.create_parking_ticket()
+    ParkingTicket.create()
     |> process_response(conn)
   end
 
@@ -24,11 +26,25 @@ defmodule ParkingLot.ApiRouter do
     case BarcodeValidation.validate(conn.params) do
       {:ok, data} ->
         data
-        |> Operations.calculate_parking_ticket_price()
+        |> ParkingTicket.calculate_price()
         |> process_response(conn)
 
       error ->
         error |> process_response(conn)
+    end
+  end
+
+  ### Task 3 - Payments
+  post "/tickets/:barcode/payments" do
+    case {BarcodeValidation.validate(conn.params),
+          PaymentValidation.validate_payment_option(conn.params)} do
+      {{:ok, barcode}, {:ok, payment_option}} ->
+        barcode
+        |> TicketPayment.process(payment_option)
+        |> process_response(conn)
+
+      _ ->
+        {:error, :invalid_payment_format} |> process_response(conn)
     end
   end
 
@@ -62,6 +78,7 @@ defmodule ParkingLot.ApiRouter do
 
   ### Error codes ###
   defp error_codes(:unknown_barcode), do: {400, "Unknown barcode"}
+  defp error_codes(:invalid_payment_format), do: {400, "Invalid payment format"}
   defp error_codes(:invalid_barcode), do: {400, "Invalid barcode format"}
   defp error_codes(:no_free_parking_spaces), do: {400, "No free parking spaces"}
   defp error_codes(:not_found), do: {404, "Not found!"}
