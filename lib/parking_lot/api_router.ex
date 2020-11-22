@@ -12,6 +12,7 @@ defmodule ParkingLot.ApiRouter do
   alias ParkingLot.ParkingTicket
   alias ParkingLot.TicketPayment
   alias ParkingLot.TicketState
+  alias ParkingLot.ParkingFreeSpaces
 
   #################
   ### API paths ###
@@ -61,6 +62,12 @@ defmodule ParkingLot.ApiRouter do
       error ->
         error |> process_response(conn)
     end
+  end
+
+  ### Task 5 - Parking free spaces
+  get "/free-spaces" do
+    ParkingFreeSpaces.count()
+    |> process_response(conn)
   end
 
   ### Check app alive
